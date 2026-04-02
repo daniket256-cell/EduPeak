@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Test Series — EduPeak</title>
+<link rel="stylesheet" href="../css/base.css"/>
+<style>
+body { padding-top: 70px; }
+.page-hero { background: var(--ink); color: var(--cream); padding: 56px 48px 48px; }
+.page-hero h1 { font-size: clamp(1.8rem,3.5vw,2.8rem); margin-bottom: 10px; }
+.page-hero p { color: #ffffffaa; font-size: 0.93rem; }
+
+.filters-bar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 18px 48px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 70px; z-index: 50;
+}
+.filter-btn {
+  padding: 7px 16px; border-radius: 999px; border: 1.5px solid var(--border);
+  background: none; font-family: 'DM Sans',sans-serif; font-size: 0.82rem; font-weight: 600;
+  color: var(--muted); cursor: pointer; transition: all 0.2s;
+}
+.filter-btn:hover, .filter-btn.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+.search-wrap { margin-left: auto; position: relative; }
+.search-wrap input { width: 220px; padding: 8px 14px 8px 36px; border-radius: 8px; font-size: 0.85rem; }
+.search-wrap::before { content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; }
+
+.tests-main { padding: 36px 48px; max-width: 1200px; margin: 0 auto; }
+.tests-count { font-size: 0.83rem; color: var(--muted); margin-bottom: 24px; font-weight: 500; }
+.tests-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 20px; }
+
+.test-card {
+  background: var(--white); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; transition: transform 0.25s, box-shadow 0.25s;
+  display: flex; flex-direction: column;
+}
+.test-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px #0d0d0d0e; }
+.test-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.test-card h3 { font-family:'DM Sans',sans-serif; font-size: 1rem; font-weight: 700; line-height: 1.4; margin-bottom: 8px; }
+.test-card p { font-size: 0.81rem; color: var(--muted); line-height: 1.6; margin-bottom: 16px; flex: 1; }
+.test-meta-row { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.test-meta-row span { font-size: 0.76rem; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.test-card-actions { display: flex; gap: 10px; }
+.test-card-actions .btn { flex: 1; font-size: 0.83rem; padding: 10px; }
+
+.empty-state { grid-column: 1/-1; text-align: center; padding: 80px 24px; color: var(--muted); }
+.empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-state h3 { font-family:'DM Sans',sans-serif; font-weight: 600; margin-bottom: 8px; }
+
+@media(max-width:768px){
+  .filters-bar, .tests-main { padding-left: 20px; padding-right: 20px; }
+  .page-hero { padding: 40px 20px; }
+  .search-wrap { margin-left: 0; width: 100%; }
+  .search-wrap input { width: 100%; }
+}
+</style>
+</head>
+<body data-root="../">
+<div id="nav-root"></div>
+
+<div class="page-hero">
+  <div class="section-tag">Test Series</div>
+  <h1>All Available Tests</h1>
+  <p>Browse, filter, and start practising. New tests added every week.</p>
+</div>
+
+<div class="filters-bar">
+  <button class="filter-btn active" onclick="filterExam('')">All Exams</button>
+  <button class="filter-btn" onclick="filterExam('JEE')">JEE</button>
+  <button class="filter-btn" onclick="filterExam('NEET')">NEET</button>
+  <button class="filter-btn" onclick="filterExam('CBSE 10th')">CBSE 10th</button>
+  <button class="filter-btn" onclick="filterExam('CBSE 12th')">CBSE 12th</button>
+  <button class="filter-btn" onclick="filterExam('IIT JAM')">IIT JAM</button>
+  <button class="filter-btn" onclick="filterExam('CUET')">CUET</button>
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="Search tests..." oninput="renderTests()"/>
+  </div>
+</div>
+
+<div class="tests-main">
+  <div class="tests-count" id="tests-count"></div>
+  <div class="tests-grid" id="tests-grid"></div>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+document.getElementById('nav-root').innerHTML = renderNav('tests');
+
+let activeExam = '';
+const params = new URLSearchParams(location.search);
+if (params.get('exam')) {
+  activeExam = params.get('exam');
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === activeExam || (activeExam && b.textContent.trim() === activeExam.replace(' ','\ ')));
+  });
+}
+
+const examColors = { 'JEE':'badge-red','NEET':'badge-green','CBSE 10th':'badge-teal','CBSE 12th':'badge-purple','IIT JAM':'badge-amber','CUET':'badge-red' };
+
+function filterExam(exam) {
+  activeExam = exam;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === (exam || 'All Exams')));
+  renderTests();
+}
+
+function renderTests() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let tests = Store.getTests();
+  if (activeExam) tests = tests.filter(t => t.exam === activeExam);
+  if (q) tests = tests.filter(t => t.title.toLowerCase().includes(q) || t.exam.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q));
+  document.getElementById('tests-count').textContent = `Showing ${tests.length} test${tests.length!==1?'s':''}`;
+  const grid = document.getElementById('tests-grid');
+  if (!tests.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No tests found</h3><p>Try a different filter or check back later.</p></div>`;
+    return;
+  }
+  const user = Auth.getUser();
+  const results = Store.getResults();
+  grid.innerHTML = tests.map(t => {
+    const myResult = user ? results.find(r => r.testId===t.id && r.userId===user.email) : null;
+    const colorClass = examColors[t.exam] || 'badge-amber';
+    return `
+    <div class="test-card">
+      <div>
+        <div class="test-card-header">
+          <span class="badge ${colorClass}">${t.exam}</span>
+          ${myResult ? '<span class="badge badge-green">✓ Attempted</span>' : ''}
+        </div>
+        <h3>${t.title}</h3>
+        <p>${t.description}</p>
+        <div class="test-meta-row">
+          <span>📚 ${t.subject}</span>
+          <span>⏱ ${t.duration} min</span>
+          <span>📝 ${t.questions.length} Qs</span>
+          <span>🏆 ${t.totalMarks} marks</span>
+        </div>
+      </div>
+      <div class="test-card-actions">
+        ${myResult
+          ? `<a href="results.html" class="btn btn-outline">View Result</a>
+             <button class="btn btn-primary" onclick="startTest('${t.id}')">Retake</button>`
+          : `<button class="btn btn-primary" onclick="startTest('${t.id}')">Start Test →</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startTest(id) {
+  if (!Auth.getUser()) { showToast('Please login to attempt tests', 'error'); return; }
+  window.location.href = `exam.html?id=${id}`;
+}
+
+renderTests();
+</script>
+</body>
+</html>
